@@ -1,39 +1,32 @@
 steps:
-  # Step 1: Build Docker image tagged with commit SHA
+  # Step 1: Build the Docker image
   - name: 'gcr.io/cloud-builders/docker'
-    id: Build
     args:
-      - build
-      - -t
-      - us-central1-docker.pkg.dev/$PROJECT_ID/its-repo/its-app:$SHORT_SHA
-      - -t
-      - us-central1-docker.pkg.dev/$PROJECT_ID/its-repo/its-app:latest
-      - .
+      - 'build'
+      - '-t'
+      - 'us-central1-docker.pkg.dev/$PROJECT_ID/its-repo/its-app:$SHORT_SHA'
+      - '.'
 
-  # Step 2: Push both tags to Artifact Registry
+  # Step 2: Push image to Artifact Registry
   - name: 'gcr.io/cloud-builders/docker'
-    id: Push
     args:
-      - push
-      - --all-tags
-      - us-central1-docker.pkg.dev/$PROJECT_ID/its-repo/its-app
+      - 'push'
+      - 'us-central1-docker.pkg.dev/$PROJECT_ID/its-repo/its-app:$SHORT_SHA'
 
-  # Step 3: Print build info
-  - name: 'gcr.io/cloud-builders/gcloud'
-    id: Summary
-    entrypoint: bash
+  # Step 3: Deploy to Cloud Run
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    entrypoint: gcloud
     args:
-      - -c
-      - |
-        echo "=== Build Complete ==="
-        echo "Commit: $SHORT_SHA"
-        echo "Branch: $BRANCH_NAME"
-        echo "Repo:   $REPO_NAME"
-        echo "Image:  us-central1-docker.pkg.dev/$PROJECT_ID/its-repo/its-app:$SHORT_SHA"
+      - 'run'
+      - 'deploy'
+      - 'its-web-service'
+      - '--image=us-central1-docker.pkg.dev/$PROJECT_ID/its-repo/its-app:$SHORT_SHA'
+      - '--region=us-central1'
+      - '--platform=managed'
+      - '--allow-unauthenticated'
 
 images:
-  - us-central1-docker.pkg.dev/$PROJECT_ID/its-repo/its-app:$SHORT_SHA
-  - us-central1-docker.pkg.dev/$PROJECT_ID/its-repo/its-app:latest
+  - 'us-central1-docker.pkg.dev/$PROJECT_ID/its-repo/its-app:$SHORT_SHA'
 
 options:
   logging: CLOUD_LOGGING_ONLY
